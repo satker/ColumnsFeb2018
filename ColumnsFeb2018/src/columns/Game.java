@@ -23,7 +23,7 @@ public class Game implements Runnable, ModelListener {
 	int ch;
 
 	
-	long DScore, tc;
+	long tc;
 	Font fCourier;
 
 	boolean KeyPressed = false;
@@ -50,7 +50,6 @@ public class Game implements Runnable, ModelListener {
 			Thread.sleep(t);
 		} catch (InterruptedException e) {
 		}
-		;
 	}
 
 	void DrawBox(int x, int y, int c) {
@@ -80,7 +79,7 @@ public class Game implements Runnable, ModelListener {
 		// g.setColor (Color.black);
 	}
 
-	void DrawField(Graphics g) {
+	void DrawField() {
 		int i, j;
 		for (i = 1; i <= Model.Depth; i++) {
 			for (j = 1; j <= Model.Width; j++) {
@@ -93,26 +92,6 @@ public class Game implements Runnable, ModelListener {
 		DrawBox(f.x, f.y, f.colors[1]);
 		DrawBox(f.x, f.y + 1, f.colors[2]);
 		DrawBox(f.x, f.y + 2, f.colors[3]);
-	}
-
-	void DropFigure(Figure f) {
-		int zz;
-		if (f.y < Model.Depth - 2) {
-			zz = Model.Depth;
-			while (model.newField[f.x][zz] > 0)
-				zz--;
-			DScore = (((model.level + 1) * (Model.Depth * 2 - f.y - zz) * 2) % 5) * 5;
-			f.y = zz - 2;
-		}
-	}
-
-	boolean FullField() {
-		int i;
-		for (i = 1; i <= Model.Width; i++) {
-			if (model.newField[i][3] > 0)
-				return true;
-		}
-		return false;
 	}
 
 	void HideFigure(Figure f) {
@@ -139,22 +118,6 @@ public class Game implements Runnable, ModelListener {
 		return true;
 	}
 
-	void PackField() {
-		int i, j, n;
-		for (i = 1; i <= Model.Width; i++) {
-			n = Model.Depth;
-			for (j = Model.Depth; j > 0; j--) {
-				if (model.oldField[i][j] > 0) {
-					model.newField[i][n] = model.oldField[i][j];
-					n--;
-				}
-			}
-			;
-			for (j = n; j > 0; j--)
-				model.newField[i][j] = 0;
-		}
-	}
-
 	public void paint(Graphics g) {
 		// ShowHelp(g);
 
@@ -162,26 +125,13 @@ public class Game implements Runnable, ModelListener {
 
 		ShowLevel(g);
 		ShowScore(g);
-		DrawField(g);
+		DrawField();
 		DrawFigure(model.fig);
-	}
-
-	void PasteFigure(Figure f) {
-		model.newField[f.x][f.y] = f.colors[1];
-		model.newField[f.x][f.y + 1] = f.colors[2];
-		model.newField[f.x][f.y + 2] = f.colors[3];
 	}
 
 	@Override
 	public void run() {
-		for (i = 0; i < Model.Width + 1; i++) {
-			for (j = 0; j < Model.Depth + 1; j++) {
-				model.newField[i][j] = 0;
-				model.oldField[i][j] = 0;
-			}
-		}
-		model.level = 0;
-		model.score = (long) 0;
+		model.init();
 		j = 0;
 		model.tripletsCollected = 0;
 		_gr.setColor(Color.black);
@@ -201,7 +151,7 @@ public class Game implements Runnable, ModelListener {
 					model.fig.y++;
 					DrawFigure(model.fig);
 				}
-				DScore = 0;
+				model.DScore = (long) 0;
 				do {
 					Delay(50);
 					if (KeyPressed) {
@@ -240,7 +190,7 @@ public class Game implements Runnable, ModelListener {
 							break;
 						case ' ':
 							HideFigure(model.fig);
-							DropFigure(model.fig);
+							model.dropFigure();
 							DrawFigure(model.fig);
 							tc = 0;
 							break;
@@ -272,16 +222,15 @@ public class Game implements Runnable, ModelListener {
 						- tc) <= (MaxLevel - model.level) * TimeShift
 								+ MinTimeShift);
 			}
-			;
-			PasteFigure(model.fig);
+			model.pasteFigure();
 			do {
 				model.NoChanges = true;
-				TestField();
+				model.testField();
 				if (!model.NoChanges) {
 					Delay(500);
-					PackField();
-					DrawField(_gr);
-					model.score += DScore;
+					model.packField();
+					DrawField();
+					model.score += model.DScore;
 					ShowScore(_gr);
 					if (model.tripletsCollected >= FigToDrop) {
 						model.tripletsCollected = 0;
@@ -291,7 +240,7 @@ public class Game implements Runnable, ModelListener {
 					}
 				}
 			} while (!model.NoChanges);
-		} while (!FullField());
+		} while (!model.isFieldFull());
 	}
 
 	void ShowHelp(Graphics g) {
@@ -335,25 +284,6 @@ public class Game implements Runnable, ModelListener {
 		if (thr != null) {
 			thr.stop();
 			thr = null;
-		}
-	}
-
-	void TestField() {
-		int i, j;
-		for (i = 1; i <= Model.Depth; i++) {
-			for (j = 1; j <= Model.Width; j++) {
-				model.oldField[j][i] = model.newField[j][i];
-			}
-		}
-		for (i = 1; i <= Model.Depth; i++) {
-			for (j = 1; j <= Model.Width; j++) {
-				if (model.newField[j][i] > 0) {
-					model.CheckNeighbours(j, i - 1, j, i + 1, i, j);
-					model.CheckNeighbours(j - 1, i, j + 1, i, i, j);
-					model.CheckNeighbours(j - 1, i - 1, j + 1, i + 1, i, j);
-					model.CheckNeighbours(j + 1, i - 1, j - 1, i + 1, i, j);
-				}
-			}
 		}
 	}
 	
