@@ -18,7 +18,8 @@ public class Game implements Runnable {
 	Color MyStyles[] = { Color.black, Color.cyan, Color.blue, Color.red,
 			Color.green, Color.yellow, Color.pink, Color.magenta, Color.black };
 
-	int i, j, ii, k, ch;
+	int i, j, ii;
+	int ch;
 
 	
 	long DScore, tc;
@@ -36,19 +37,17 @@ public class Game implements Runnable {
 	}
 
 	void CheckNeighbours(int a, int b, int c, int d, int i, int j) {
-		if ((model.$NewField[j][i] == model.$NewField[a][b])
-				&& (model.$NewField[j][i] == model.$NewField[c][d])) {
-			model.$OldField[a][b] = 0;
+		if (model.allCellsHaveSameColor(this, a, b, c, d, i, j)) {
+			model.oldField[a][b] = 0;
 			DrawBox(a, b, 8);
-			model.$OldField[j][i] = 0;
+			model.oldField[j][i] = 0;
 			DrawBox(j, i, 8);
-			model.$OldField[c][d] = 0;
+			model.oldField[c][d] = 0;
 			DrawBox(c, d, 8);
 			NoChanges = false;
-			model.$Score += (model.$Level + 1) * 10;
-			k++;
+			model.score += (model.level + 1) * 10;
+			model.tripletsCollected = model.tripletsCollected + 1;
 		}
-		;
 	}
 
 	void Delay(long t) {
@@ -88,9 +87,9 @@ public class Game implements Runnable {
 
 	void DrawField(Graphics g) {
 		int i, j;
-		for (i = 1; i <= Model.$Depth; i++) {
-			for (j = 1; j <= Model.$Width; j++) {
-				DrawBox(j, i, model.$NewField[j][i]);
+		for (i = 1; i <= Model.Depth; i++) {
+			for (j = 1; j <= Model.Width; j++) {
+				DrawBox(j, i, model.newField[j][i]);
 			}
 		}
 	}
@@ -103,19 +102,19 @@ public class Game implements Runnable {
 
 	void DropFigure(Figure f) {
 		int zz;
-		if (f.y < Model.$Depth - 2) {
-			zz = Model.$Depth;
-			while (model.$NewField[f.x][zz] > 0)
+		if (f.y < Model.Depth - 2) {
+			zz = Model.Depth;
+			while (model.newField[f.x][zz] > 0)
 				zz--;
-			DScore = (((model.$Level + 1) * (Model.$Depth * 2 - f.y - zz) * 2) % 5) * 5;
+			DScore = (((model.level + 1) * (Model.Depth * 2 - f.y - zz) * 2) % 5) * 5;
 			f.y = zz - 2;
 		}
 	}
 
 	boolean FullField() {
 		int i;
-		for (i = 1; i <= Model.$Width; i++) {
-			if (model.$NewField[i][3] > 0)
+		for (i = 1; i <= Model.Width; i++) {
+			if (model.newField[i][3] > 0)
 				return true;
 		}
 		return false;
@@ -129,8 +128,8 @@ public class Game implements Runnable {
 
 	public void init() {
 		model = new Model();
-		model.$NewField = new int[Model.$Width + 2][Model.$Depth + 2];
-		model.$OldField = new int[Model.$Width + 2][Model.$Depth + 2];
+		model.newField = new int[Model.Width + 2][Model.Depth + 2];
+		model.oldField = new int[Model.Width + 2][Model.Depth + 2];
 	}
 
 	public boolean keyDown(Event e, int k) {
@@ -147,17 +146,17 @@ public class Game implements Runnable {
 
 	void PackField() {
 		int i, j, n;
-		for (i = 1; i <= Model.$Width; i++) {
-			n = Model.$Depth;
-			for (j = Model.$Depth; j > 0; j--) {
-				if (model.$OldField[i][j] > 0) {
-					model.$NewField[i][n] = model.$OldField[i][j];
+		for (i = 1; i <= Model.Width; i++) {
+			n = Model.Depth;
+			for (j = Model.Depth; j > 0; j--) {
+				if (model.oldField[i][j] > 0) {
+					model.newField[i][n] = model.oldField[i][j];
 					n--;
 				}
 			}
 			;
 			for (j = n; j > 0; j--)
-				model.$NewField[i][j] = 0;
+				model.newField[i][j] = 0;
 		}
 	}
 
@@ -169,43 +168,43 @@ public class Game implements Runnable {
 		ShowLevel(g);
 		ShowScore(g);
 		DrawField(g);
-		DrawFigure(model.$Fig);
+		DrawFigure(model.fig);
 	}
 
 	void PasteFigure(Figure f) {
-		model.$NewField[f.x][f.y] = f.colors[1];
-		model.$NewField[f.x][f.y + 1] = f.colors[2];
-		model.$NewField[f.x][f.y + 2] = f.colors[3];
+		model.newField[f.x][f.y] = f.colors[1];
+		model.newField[f.x][f.y + 1] = f.colors[2];
+		model.newField[f.x][f.y + 2] = f.colors[3];
 	}
 
 	@Override
 	public void run() {
-		for (i = 0; i < Model.$Width + 1; i++) {
-			for (j = 0; j < Model.$Depth + 1; j++) {
-				model.$NewField[i][j] = 0;
-				model.$OldField[i][j] = 0;
+		for (i = 0; i < Model.Width + 1; i++) {
+			for (j = 0; j < Model.Depth + 1; j++) {
+				model.newField[i][j] = 0;
+				model.oldField[i][j] = 0;
 			}
 		}
-		model.$Level = 0;
-		model.$Score = (long) 0;
+		model.level = 0;
+		model.score = (long) 0;
 		j = 0;
-		k = 0;
+		model.tripletsCollected = 0;
 		_gr.setColor(Color.black);
 		service.requestFocus();
 
 		do {
 			tc = System.currentTimeMillis();
 			new Figure();
-			DrawFigure(model.$Fig);
-			while ((model.$Fig.y < Model.$Depth - 2)
-					&& (model.$NewField[model.$Fig.x][model.$Fig.y + 3] == 0)) {
+			DrawFigure(model.fig);
+			while ((model.fig.y < Model.Depth - 2)
+					&& (model.newField[model.fig.x][model.fig.y + 3] == 0)) {
 				if ((int) (System.currentTimeMillis()
-						- tc) > (MaxLevel - model.$Level) * TimeShift
+						- tc) > (MaxLevel - model.level) * TimeShift
 								+ MinTimeShift) {
 					tc = System.currentTimeMillis();
-					HideFigure(model.$Fig);
-					model.$Fig.y++;
-					DrawFigure(model.$Fig);
+					HideFigure(model.fig);
+					model.fig.y++;
+					DrawFigure(model.fig);
 				}
 				DScore = 0;
 				do {
@@ -214,72 +213,72 @@ public class Game implements Runnable {
 						KeyPressed = false;
 						switch (ch) {
 						case Event.LEFT:
-							if ((model.$Fig.x > 1) && (model.$NewField[model.$Fig.x - 1][model.$Fig.y
+							if ((model.fig.x > 1) && (model.newField[model.fig.x - 1][model.fig.y
 									+ 2] == 0)) {
-								HideFigure(model.$Fig);
-								model.$Fig.x--;
-								DrawFigure(model.$Fig);
+								HideFigure(model.fig);
+								model.fig.x--;
+								DrawFigure(model.fig);
 							}
 							break;
 						case Event.RIGHT:
-							if ((model.$Fig.x < Model.$Width)
-									&& (model.$NewField[model.$Fig.x + 1][model.$Fig.y
+							if ((model.fig.x < Model.Width)
+									&& (model.newField[model.fig.x + 1][model.fig.y
 											+ 2] == 0)) {
-								HideFigure(model.$Fig);
-								model.$Fig.x++;
-								DrawFigure(model.$Fig);
+								HideFigure(model.fig);
+								model.fig.x++;
+								DrawFigure(model.fig);
 							}
 							break;
 						case Event.UP:
-							i = model.$Fig.colors[1];
-							model.$Fig.colors[1] = model.$Fig.colors[2];
-							model.$Fig.colors[2] = model.$Fig.colors[3];
-							model.$Fig.colors[3] = i;
-							DrawFigure(model.$Fig);
+							i = model.fig.colors[1];
+							model.fig.colors[1] = model.fig.colors[2];
+							model.fig.colors[2] = model.fig.colors[3];
+							model.fig.colors[3] = i;
+							DrawFigure(model.fig);
 							break;
 						case Event.DOWN:
-							i = model.$Fig.colors[1];
-							model.$Fig.colors[1] = model.$Fig.colors[3];
-							model.$Fig.colors[3] = model.$Fig.colors[2];
-							model.$Fig.colors[2] = i;
-							DrawFigure(model.$Fig);
+							i = model.fig.colors[1];
+							model.fig.colors[1] = model.fig.colors[3];
+							model.fig.colors[3] = model.fig.colors[2];
+							model.fig.colors[2] = i;
+							DrawFigure(model.fig);
 							break;
 						case ' ':
-							HideFigure(model.$Fig);
-							DropFigure(model.$Fig);
-							DrawFigure(model.$Fig);
+							HideFigure(model.fig);
+							DropFigure(model.fig);
+							DrawFigure(model.fig);
 							tc = 0;
 							break;
 						case 'P':
 						case 'p':
 							while (!KeyPressed) {
-								HideFigure(model.$Fig);
+								HideFigure(model.fig);
 								Delay(500);
-								DrawFigure(model.$Fig);
+								DrawFigure(model.fig);
 								Delay(500);
 							}
 							tc = System.currentTimeMillis();
 							break;
 						case '-':
-							if (model.$Level > 0)
-								model.$Level--;
-							k = 0;
+							if (model.level > 0)
+								model.level--;
+							model.tripletsCollected = 0;
 							ShowLevel(_gr);
 							break;
 						case '+':
-							if (model.$Level < MaxLevel)
-								model.$Level++;
-							k = 0;
+							if (model.level < MaxLevel)
+								model.level++;
+							model.tripletsCollected = 0;
 							ShowLevel(_gr);
 							break;
 						}
 					}
 				} while ((int) (System.currentTimeMillis()
-						- tc) <= (MaxLevel - model.$Level) * TimeShift
+						- tc) <= (MaxLevel - model.level) * TimeShift
 								+ MinTimeShift);
 			}
 			;
-			PasteFigure(model.$Fig);
+			PasteFigure(model.fig);
 			do {
 				NoChanges = true;
 				TestField();
@@ -287,12 +286,12 @@ public class Game implements Runnable {
 					Delay(500);
 					PackField();
 					DrawField(_gr);
-					model.$Score += DScore;
+					model.score += DScore;
 					ShowScore(_gr);
-					if (k >= FigToDrop) {
-						k = 0;
-						if (model.$Level < MaxLevel)
-							model.$Level++;
+					if (model.tripletsCollected >= FigToDrop) {
+						model.tripletsCollected = 0;
+						if (model.level < MaxLevel)
+							model.level++;
 						ShowLevel(_gr);
 					}
 				}
@@ -317,13 +316,13 @@ public class Game implements Runnable {
 	void ShowLevel(Graphics g) {
 		g.setColor(Color.black);
 		g.clearRect(LeftBorder + 100, 390, 100, 20);
-		g.drawString("Level: " + model.$Level, LeftBorder + 100, 400);
+		g.drawString("Level: " + model.level, LeftBorder + 100, 400);
 	}
 
 	void ShowScore(Graphics g) {
 		g.setColor(Color.black);
 		g.clearRect(LeftBorder, 390, 100, 20);
-		g.drawString("Score: " + model.$Score, LeftBorder, 400);
+		g.drawString("Score: " + model.score, LeftBorder, 400);
 	}
 
 	public void start() {
@@ -346,14 +345,14 @@ public class Game implements Runnable {
 
 	void TestField() {
 		int i, j;
-		for (i = 1; i <= Model.$Depth; i++) {
-			for (j = 1; j <= Model.$Width; j++) {
-				model.$OldField[j][i] = model.$NewField[j][i];
+		for (i = 1; i <= Model.Depth; i++) {
+			for (j = 1; j <= Model.Width; j++) {
+				model.oldField[j][i] = model.newField[j][i];
 			}
 		}
-		for (i = 1; i <= Model.$Depth; i++) {
-			for (j = 1; j <= Model.$Width; j++) {
-				if (model.$NewField[j][i] > 0) {
+		for (i = 1; i <= Model.Depth; i++) {
+			for (j = 1; j <= Model.Width; j++) {
+				if (model.newField[j][i] > 0) {
 					CheckNeighbours(j, i - 1, j, i + 1, i, j);
 					CheckNeighbours(j - 1, i, j + 1, i, i, j);
 					CheckNeighbours(j - 1, i - 1, j + 1, i + 1, i, j);

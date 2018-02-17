@@ -2,17 +2,24 @@ package columns;
 
 public class Model {
 
-	static final int $Depth = 15;
-	static final int $Width = 7;
+	static final int Depth = 15;
+	static final int Width = 7;
 	
-	int $Level; 
+	int level; 
 
-	long $Score;
+	long score;
 
-	int $NewField[][];
+	int newField[][];
 
-	int $OldField[][];
+	int oldField[][];
 	
-	Figure $Fig;
+	Figure fig;
 	
+	int tripletsCollected;
+
+	boolean allCellsHaveSameColor(Game game, int a, int b, int c, int d, int i, int j) {
+		return (newField[j][i] == newField[a][b])
+				&& (newField[j][i] == newField[c][d]);
+	}
+
 }
