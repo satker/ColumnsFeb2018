@@ -61,6 +61,7 @@ public class Model {
 
 	void dropFigure() {
 		int zz;
+		int oldY = fig.y;
 		if (fig.y < Model.Depth - 2) {
 			zz = Model.Depth;
 			while (newField[fig.x][zz] > 0)
@@ -68,6 +69,7 @@ public class Model {
 			DScore = (long) ((((level + 1) * (Model.Depth * 2 - fig.y - zz) * 2) % 5) * 5);
 			fig.y = zz - 2;
 		}
+		fireFigureShift(0, fig.y - oldY);
 	}
 
 	boolean isFieldFull() {
@@ -128,6 +130,40 @@ public class Model {
 		}
 		level = 0;
 		score = 0L;
+		tripletsCollected = 0;
+	}
+
+	public void nextRound() {
+		fig = new Figure();
+		fireNextRound();
+	}
+
+	private void fireNextRound() {
+		listeners.forEach(l -> l.nextRound());
+	}
+
+	public boolean mayFigureMoveDown() {
+		return (fig.y < Model.Depth - 2)
+				&& (newField[fig.x][fig.y + 3] == 0);
+	}
+
+	public void moveFigureDown() {
+		fig.y++;
+		fireFigureShift(0, 1);
+	}
+
+	private void fireFigureShift(int xShift, int yShift) {
+		listeners.forEach(l -> l.figureHasShifted(xShift, yShift)); 
+	}
+
+	public void moveFigureLeft() {
+		fig.x--;
+		fireFigureShift(-1, 0);
+	}
+
+	public void moveFigureRight() {
+		fig.x++;
+		fireFigureShift(1, 0);
 	}
 
 }

@@ -19,7 +19,6 @@ public class Game implements Runnable, ModelListener {
 	Color MyStyles[] = { Color.black, Color.cyan, Color.blue, Color.red,
 			Color.green, Color.yellow, Color.pink, Color.magenta, Color.black };
 
-	int i, j, ii;
 	int ch;
 
 	
@@ -95,11 +94,15 @@ public class Game implements Runnable, ModelListener {
 	}
 
 	void HideFigure(Figure f) {
-		DrawBox(f.x, f.y, 0);
-		DrawBox(f.x, f.y + 1, 0);
-		DrawBox(f.x, f.y + 2, 0);
+		HideFigure(f, 0, 0);
 	}
 
+	void HideFigure(Figure f, int xShift, int yShift) {
+		DrawBox(f.x + xShift, f.y + yShift, 0);
+		DrawBox(f.x + xShift, f.y + yShift + 1, 0);
+		DrawBox(f.x +xShift, f.y + yShift + 2, 0);
+	}
+	
 	public void init() {
 		model = new Model(this);
 		model.newField = new int[Model.Width + 2][Model.Depth + 2];
@@ -132,115 +135,118 @@ public class Game implements Runnable, ModelListener {
 	@Override
 	public void run() {
 		model.init();
-		j = 0;
-		model.tripletsCollected = 0;
-		_gr.setColor(Color.black);
 		service.requestFocus();
 
 		do {
-			tc = System.currentTimeMillis();
-			new Figure();
-			DrawFigure(model.fig);
-			while ((model.fig.y < Model.Depth - 2)
-					&& (model.newField[model.fig.x][model.fig.y + 3] == 0)) {
-				if ((int) (System.currentTimeMillis()
-						- tc) > (MaxLevel - model.level) * TimeShift
-								+ MinTimeShift) {
-					tc = System.currentTimeMillis();
-					HideFigure(model.fig);
-					model.fig.y++;
-					DrawFigure(model.fig);
-				}
-				model.DScore = (long) 0;
-				do {
-					Delay(50);
-					if (KeyPressed) {
-						KeyPressed = false;
-						switch (ch) {
-						case Event.LEFT:
-							if ((model.fig.x > 1) && (model.newField[model.fig.x - 1][model.fig.y
-									+ 2] == 0)) {
-								HideFigure(model.fig);
-								model.fig.x--;
-								DrawFigure(model.fig);
-							}
-							break;
-						case Event.RIGHT:
-							if ((model.fig.x < Model.Width)
-									&& (model.newField[model.fig.x + 1][model.fig.y
-											+ 2] == 0)) {
-								HideFigure(model.fig);
-								model.fig.x++;
-								DrawFigure(model.fig);
-							}
-							break;
-						case Event.UP:
-							i = model.fig.colors[1];
-							model.fig.colors[1] = model.fig.colors[2];
-							model.fig.colors[2] = model.fig.colors[3];
-							model.fig.colors[3] = i;
-							DrawFigure(model.fig);
-							break;
-						case Event.DOWN:
-							i = model.fig.colors[1];
-							model.fig.colors[1] = model.fig.colors[3];
-							model.fig.colors[3] = model.fig.colors[2];
-							model.fig.colors[2] = i;
-							DrawFigure(model.fig);
-							break;
-						case ' ':
-							HideFigure(model.fig);
-							model.dropFigure();
-							DrawFigure(model.fig);
-							tc = 0;
-							break;
-						case 'P':
-						case 'p':
-							while (!KeyPressed) {
-								HideFigure(model.fig);
-								Delay(500);
-								DrawFigure(model.fig);
-								Delay(500);
-							}
-							tc = System.currentTimeMillis();
-							break;
-						case '-':
-							if (model.level > 0)
-								model.level--;
-							model.tripletsCollected = 0;
-							ShowLevel(_gr);
-							break;
-						case '+':
-							if (model.level < MaxLevel)
-								model.level++;
-							model.tripletsCollected = 0;
-							ShowLevel(_gr);
-							break;
-						}
-					}
-				} while ((int) (System.currentTimeMillis()
-						- tc) <= (MaxLevel - model.level) * TimeShift
-								+ MinTimeShift);
-			}
-			model.pasteFigure();
-			do {
-				model.NoChanges = true;
-				model.testField();
-				if (!model.NoChanges) {
-					Delay(500);
-					model.packField();
-					DrawField();
-					model.score += model.DScore;
-					ShowScore(_gr);
-					if (model.tripletsCollected >= FigToDrop) {
-						model.tripletsCollected = 0;
-						if (model.level < MaxLevel)
-							model.level++;
-						ShowLevel(_gr);
-					}
-				}
-			} while (!model.NoChanges);
+			gameLoop();
 		} while (!model.isFieldFull());
+	}
+
+	public void gameLoop() {
+		tc = System.currentTimeMillis();
+		model.nextRound();
+		while (model.mayFigureMoveDown()) {
+			if (isTImeToShiftFigureDown()) {
+				tc = System.currentTimeMillis();
+				model.moveFigureDown();
+			}
+			model.DScore = (long) 0;
+			do {
+				Delay(50);
+				if (KeyPressed) {
+					KeyPressed = false;
+					processKeyPressed();
+				}
+			} while ((System.currentTimeMillis()
+					- tc) <= (MaxLevel - model.level) * TimeShift
+							+ MinTimeShift);
+		}
+		model.pasteFigure();
+		finishRound();
+	}
+
+	public void finishRound() {
+		do {
+			model.NoChanges = true;
+			model.testField();
+			if (!model.NoChanges) {
+				Delay(500);
+				model.packField();
+				DrawField();
+				model.score += model.DScore;
+				ShowScore(_gr);
+				if (model.tripletsCollected >= FigToDrop) {
+					model.tripletsCollected = 0;
+					if (model.level < MaxLevel)
+						model.level++;
+					ShowLevel(_gr);
+				}
+			}
+		} while (!model.NoChanges);
+	}
+
+	public void processKeyPressed() {
+		switch (ch) {
+		case Event.LEFT:
+			if ((model.fig.x > 1) && (model.newField[model.fig.x - 1][model.fig.y
+					+ 2] == 0)) {
+				model.moveFigureLeft();
+			}
+			break;
+		case Event.RIGHT:
+			if ((model.fig.x < Model.Width)
+					&& (model.newField[model.fig.x + 1][model.fig.y
+							+ 2] == 0)) {
+				model.moveFigureRight();
+			}
+			break;
+		case Event.UP:
+			int i = model.fig.colors[1];
+			model.fig.colors[1] = model.fig.colors[2];
+			model.fig.colors[2] = model.fig.colors[3];
+			model.fig.colors[3] = i;
+			DrawFigure(model.fig);
+			break;
+		case Event.DOWN:
+			i = model.fig.colors[1];
+			model.fig.colors[1] = model.fig.colors[3];
+			model.fig.colors[3] = model.fig.colors[2];
+			model.fig.colors[2] = i;
+			DrawFigure(model.fig);
+			break;
+		case ' ':
+			model.dropFigure();
+			tc = 0;
+			break;
+		case 'P':
+		case 'p':
+			while (!KeyPressed) {
+				HideFigure(model.fig);
+				Delay(500);
+				DrawFigure(model.fig);
+				Delay(500);
+			}
+			tc = System.currentTimeMillis();
+			break;
+		case '-':
+			if (model.level > 0)
+				model.level--;
+			model.tripletsCollected = 0;
+			ShowLevel(_gr);
+			break;
+		case '+':
+			if (model.level < MaxLevel)
+				model.level++;
+			model.tripletsCollected = 0;
+			ShowLevel(_gr);
+			break;
+		}
+	}
+
+	public boolean isTImeToShiftFigureDown() {
+		return (System.currentTimeMillis()
+				- tc) > (MaxLevel - model.level) * TimeShift
+						+ MinTimeShift;
 	}
 
 	void ShowHelp(Graphics g) {
@@ -285,6 +291,17 @@ public class Game implements Runnable, ModelListener {
 			thr.stop();
 			thr = null;
 		}
+	}
+
+	@Override
+	public void nextRound() {
+		DrawFigure(model.fig);
+	}
+
+	@Override
+	public void figureHasShifted(int xShift, int yShift) {
+		HideFigure(model.fig, -xShift, -yShift);
+		DrawFigure(model.fig);
 	}
 	
 
