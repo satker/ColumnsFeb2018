@@ -5,8 +5,9 @@ import java.awt.Event;
 import java.awt.Font;
 import java.awt.Graphics;
 
-public class Game implements Runnable {
+public class Game implements Runnable, ModelListener {
 	
+	private static final int CLEARED_CELL_COLOR = 8;
 	static final int SL = 25; 
 	static final int MaxLevel = 7,
 			TimeShift = 250, 
@@ -24,11 +25,12 @@ public class Game implements Runnable {
 	
 	long DScore, tc;
 	Font fCourier;
-	boolean NoChanges = true, KeyPressed = false;
+
+	boolean KeyPressed = false;
 	Graphics _gr;
 
 	Thread thr = null;
-	private Model model;
+	Model model;
 	private GameService service;
 
 	public Game(GameService service) {
@@ -36,18 +38,11 @@ public class Game implements Runnable {
 		
 	}
 
-	void CheckNeighbours(int a, int b, int c, int d, int i, int j) {
-		if (model.allCellsHaveSameColor(this, a, b, c, d, i, j)) {
-			model.oldField[a][b] = 0;
-			DrawBox(a, b, 8);
-			model.oldField[j][i] = 0;
-			DrawBox(j, i, 8);
-			model.oldField[c][d] = 0;
-			DrawBox(c, d, 8);
-			NoChanges = false;
-			model.score += (model.level + 1) * 10;
-			model.tripletsCollected = model.tripletsCollected + 1;
-		}
+	@Override
+	public void clearMatchedCells(int a, int b, int c, int d, int i, int j) {
+		DrawBox(a, b, CLEARED_CELL_COLOR);
+		DrawBox(j, i, CLEARED_CELL_COLOR);
+		DrawBox(c, d, CLEARED_CELL_COLOR);
 	}
 
 	void Delay(long t) {
@@ -127,7 +122,7 @@ public class Game implements Runnable {
 	}
 
 	public void init() {
-		model = new Model();
+		model = new Model(this);
 		model.newField = new int[Model.Width + 2][Model.Depth + 2];
 		model.oldField = new int[Model.Width + 2][Model.Depth + 2];
 	}
@@ -280,9 +275,9 @@ public class Game implements Runnable {
 			;
 			PasteFigure(model.fig);
 			do {
-				NoChanges = true;
+				model.NoChanges = true;
 				TestField();
-				if (!NoChanges) {
+				if (!model.NoChanges) {
 					Delay(500);
 					PackField();
 					DrawField(_gr);
@@ -295,7 +290,7 @@ public class Game implements Runnable {
 						ShowLevel(_gr);
 					}
 				}
-			} while (!NoChanges);
+			} while (!model.NoChanges);
 		} while (!FullField());
 	}
 
@@ -353,10 +348,10 @@ public class Game implements Runnable {
 		for (i = 1; i <= Model.Depth; i++) {
 			for (j = 1; j <= Model.Width; j++) {
 				if (model.newField[j][i] > 0) {
-					CheckNeighbours(j, i - 1, j, i + 1, i, j);
-					CheckNeighbours(j - 1, i, j + 1, i, i, j);
-					CheckNeighbours(j - 1, i - 1, j + 1, i + 1, i, j);
-					CheckNeighbours(j + 1, i - 1, j - 1, i + 1, i, j);
+					model.CheckNeighbours(j, i - 1, j, i + 1, i, j);
+					model.CheckNeighbours(j - 1, i, j + 1, i, i, j);
+					model.CheckNeighbours(j - 1, i - 1, j + 1, i + 1, i, j);
+					model.CheckNeighbours(j + 1, i - 1, j - 1, i + 1, i, j);
 				}
 			}
 		}
