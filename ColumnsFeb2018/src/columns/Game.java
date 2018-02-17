@@ -4,6 +4,7 @@ import java.awt.Color;
 import java.awt.Event;
 import java.awt.Font;
 import java.awt.Graphics;
+import java.util.List;
 
 public class Game implements Runnable, ModelListener {
 	
@@ -19,7 +20,6 @@ public class Game implements Runnable, ModelListener {
 	Color MyStyles[] = { Color.black, Color.cyan, Color.blue, Color.red,
 			Color.green, Color.yellow, Color.pink, Color.magenta, Color.black };
 
-	long tc;
 	Font fCourier;
 
 	boolean KeyPressed = false;
@@ -112,7 +112,8 @@ public class Game implements Runnable, ModelListener {
 	}
 
 	public boolean lostFocus(Event e, Object w) {
-		processKeyPressed('P');
+		// FIXME
+//		processKeyPressed('P');
 		return true;
 	}
 
@@ -146,28 +147,6 @@ public class Game implements Runnable, ModelListener {
 			model.moveFigureDown();
 			model.DropBonusScore = 0;
 		}
-		model.pasteFigure();
-		finishRound();
-	}
-
-	public void finishRound() {
-		do {
-			model.NoChanges = true;
-			model.testField();
-			if (!model.NoChanges) {
-				Delay(500);
-				model.packField();
-				DrawField();
-				model.score += model.DropBonusScore;
-				ShowScore(_gr);
-				if (model.tripletsCollected >= FigToDrop) {
-					model.tripletsCollected = 0;
-					if (model.level < MaxLevel)
-						model.level++;
-					ShowLevel(_gr);
-				}
-			}
-		} while (!model.NoChanges);
 	}
 
 	public void processKeyPressed(int keyCode) {
@@ -194,17 +173,16 @@ public class Game implements Runnable, ModelListener {
 			break;
 		case ' ':
 			model.dropFigure();
-			tc = 0;
 			break;
 		case 'P':
 		case 'p':
-			while (!KeyPressed) {
-				HideFigure(model.fig);
-				Delay(500);
-				DrawFigure(model.fig);
-				Delay(500);
-			}
-			tc = System.currentTimeMillis();
+			// FIXME
+//			while (!KeyPressed) {
+//				HideFigure(model.fig);
+//				Delay(500);
+//				DrawFigure(model.fig);
+//				Delay(500);
+//			}
 			break;
 		case '-':
 			if (model.level > 0)
@@ -221,11 +199,6 @@ public class Game implements Runnable, ModelListener {
 		}
 	}
 
-	public boolean isTimeToShiftFigureDown() {
-		return (System.currentTimeMillis()
-				- tc) > (MaxLevel - model.level) * TimeShift
-						+ MinTimeShift;
-	}
 
 	void ShowHelp(Graphics g) {
 		g.setColor(Color.black);
@@ -280,6 +253,29 @@ public class Game implements Runnable, ModelListener {
 	public void figureHasShifted(int xShift, int yShift) {
 		HideFigure(model.fig, -xShift, -yShift);
 		DrawFigure(model.fig);
+	}
+
+	@Override
+	public void finishRound(List<GameEvent> events) {
+		events.forEach(e -> {
+			if (e instanceof GameEvent.Pause) {
+				Delay(500);
+			}
+			if (e instanceof GameEvent.DrawField) {
+				DrawField();
+			}
+			if (e instanceof GameEvent.ShowScore) {
+				ShowScore(_gr);
+			}
+			if (e instanceof GameEvent.ShowLevel) {
+				ShowLevel(_gr);
+			}
+			if (e instanceof ClearCellsEvent) {
+				ClearCellsEvent cce = (ClearCellsEvent) e;
+				int[] c = cce.coords;
+				clearMatchedCells(c[0], c[1], c[2], c[3], c[4], c[5]);
+			}
+		});
 	}
 	
 

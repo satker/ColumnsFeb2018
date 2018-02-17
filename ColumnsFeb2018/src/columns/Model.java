@@ -42,21 +42,17 @@ public class Model {
 				&& (newField[j][i] == newField[c][d]);
 	}
 
-	void CheckNeighbours(int a, int b, int c, int d, int i, int j) {
+	void CheckNeighbours(List<GameEvent> events, int a, int b, int c, int d,
+			int i, int j) {
 		if (allCellsHaveSameColor(a, b, c, d, i, j)) {
 			oldField[a][b] = 0;
 			oldField[j][i] = 0;
 			oldField[c][d] = 0;
-			fireClearMatchedCells(a, b, c, d, i, j);
+			events.add(new ClearCellsEvent(a, b, c, d, i, j));
 			NoChanges = false;
 			score += (level + 1) * 10;
 			tripletsCollected = tripletsCollected + 1;
 		}
-	}
-
-	public void fireClearMatchedCells(int a, int b, int c, int d, int i,
-			int j) {
-		listeners.forEach(l -> l.clearMatchedCells(a, b, c, d, i, j));
 	}
 
 	void dropFigure() {
@@ -103,7 +99,7 @@ public class Model {
 		newField[fig.x][fig.y + 2] = fig.colors[3];
 	}
 
-	void testField() {
+	void testField(List<GameEvent> events) {
 		int i, j;
 		for (i = 1; i <= Model.Depth; i++) {
 			for (j = 1; j <= Model.Width; j++) {
@@ -113,10 +109,10 @@ public class Model {
 		for (i = 1; i <= Model.Depth; i++) {
 			for (j = 1; j <= Model.Width; j++) {
 				if (newField[j][i] > 0) {
-					CheckNeighbours(j, i - 1, j, i + 1, i, j);
-					CheckNeighbours(j - 1, i, j + 1, i, i, j);
-					CheckNeighbours(j - 1, i - 1, j + 1, i + 1, i, j);
-					CheckNeighbours(j + 1, i - 1, j - 1, i + 1, i, j);
+					CheckNeighbours(events, j, i - 1, j, i + 1, i, j);
+					CheckNeighbours(events, j - 1, i, j + 1, i, i, j);
+					CheckNeighbours(events, j - 1, i - 1, j + 1, i + 1, i, j);
+					CheckNeighbours(events, j + 1, i - 1, j - 1, i + 1, i, j);
 				}
 			}
 		}
@@ -148,6 +144,10 @@ public class Model {
 	}
 
 	public void moveFigureDown() {
+		if (!mayFigureMoveDown()) {
+			finishRound();
+			return;
+		}
 		fig.y++;
 		fireFigureShift(0, 1);
 	}
@@ -158,20 +158,49 @@ public class Model {
 
 	public void moveLeft() {
 		if (!((fig.x > 1) && (newField[fig.x - 1][fig.y + 2] == 0))) {
-			return; // guard condition  
+			return; // guard condition
 		}
 		fig.x--;
 		fireFigureShift(-1, 0);
 	}
 
 	public void moveRight() {
-		if (!((fig.x < Model.Width)
-				&& (newField[fig.x + 1][fig.y
-										+ 2] == 0))) {
+		if (!((fig.x < Model.Width) && (newField[fig.x + 1][fig.y + 2] == 0))) {
 			return;
 		}
 		fig.x++;
 		fireFigureShift(1, 0);
+	}
+
+	private void finishRound() {
+		pasteFigure();
+		List<GameEvent> events = new ArrayList<>();
+		do {
+			NoChanges = true;
+			testField(events);
+			if (!NoChanges) {
+				events.add(new GameEvent.Pause() {
+				});
+				packField();
+				events.add(new GameEvent.DrawField() {
+				});
+				score += DropBonusScore;
+				events.add(new GameEvent.ShowScore() {
+				});
+				if (tripletsCollected >= Game.FigToDrop) {
+					tripletsCollected = 0;
+					if (level < Game.MaxLevel)
+						level++;
+					events.add(new GameEvent.ShowLevel() {
+					});
+				}
+			}
+		} while (!NoChanges);
+		fireFinishRound(events);
+	}
+
+	private void fireFinishRound(List<GameEvent> events) {
+		listeners.forEach(l -> l.finishRound(events));
 	}
 
 }
