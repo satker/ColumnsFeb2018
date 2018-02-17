@@ -19,9 +19,6 @@ public class Game implements Runnable, ModelListener {
 	Color MyStyles[] = { Color.black, Color.cyan, Color.blue, Color.red,
 			Color.green, Color.yellow, Color.pink, Color.magenta, Color.black };
 
-	int ch;
-
-	
 	long tc;
 	Font fCourier;
 
@@ -110,14 +107,12 @@ public class Game implements Runnable, ModelListener {
 	}
 
 	public boolean keyDown(Event e, int k) {
-		KeyPressed = true;
-		ch = e.key;
+		processKeyPressed(e.key);
 		return true;
 	}
 
 	public boolean lostFocus(Event e, Object w) {
-		KeyPressed = true;
-		ch = 'P';
+		processKeyPressed('P');
 		return true;
 	}
 
@@ -143,23 +138,13 @@ public class Game implements Runnable, ModelListener {
 	}
 
 	public void gameLoop() {
-		tc = System.currentTimeMillis();
 		model.nextRound();
 		while (model.mayFigureMoveDown()) {
-			if (isTImeToShiftFigureDown()) {
-				tc = System.currentTimeMillis();
-				model.moveFigureDown();
-			}
-			model.DScore = (long) 0;
-			do {
-				Delay(50);
-				if (KeyPressed) {
-					KeyPressed = false;
-					processKeyPressed();
-				}
-			} while ((System.currentTimeMillis()
-					- tc) <= (MaxLevel - model.level) * TimeShift
-							+ MinTimeShift);
+			long millisToSleep = (MaxLevel - model.level) * TimeShift
+					+ MinTimeShift;
+			Delay(millisToSleep);
+			model.moveFigureDown();
+			model.DropBonusScore = 0;
 		}
 		model.pasteFigure();
 		finishRound();
@@ -173,7 +158,7 @@ public class Game implements Runnable, ModelListener {
 				Delay(500);
 				model.packField();
 				DrawField();
-				model.score += model.DScore;
+				model.score += model.DropBonusScore;
 				ShowScore(_gr);
 				if (model.tripletsCollected >= FigToDrop) {
 					model.tripletsCollected = 0;
@@ -185,20 +170,13 @@ public class Game implements Runnable, ModelListener {
 		} while (!model.NoChanges);
 	}
 
-	public void processKeyPressed() {
-		switch (ch) {
+	public void processKeyPressed(int keyCode) {
+		switch (keyCode) {
 		case Event.LEFT:
-			if ((model.fig.x > 1) && (model.newField[model.fig.x - 1][model.fig.y
-					+ 2] == 0)) {
-				model.moveFigureLeft();
-			}
+			model.moveLeft();
 			break;
 		case Event.RIGHT:
-			if ((model.fig.x < Model.Width)
-					&& (model.newField[model.fig.x + 1][model.fig.y
-							+ 2] == 0)) {
-				model.moveFigureRight();
-			}
+			model.moveRight();
 			break;
 		case Event.UP:
 			int i = model.fig.colors[1];
@@ -243,7 +221,7 @@ public class Game implements Runnable, ModelListener {
 		}
 	}
 
-	public boolean isTImeToShiftFigureDown() {
+	public boolean isTimeToShiftFigureDown() {
 		return (System.currentTimeMillis()
 				- tc) > (MaxLevel - model.level) * TimeShift
 						+ MinTimeShift;

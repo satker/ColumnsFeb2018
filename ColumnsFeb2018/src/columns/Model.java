@@ -8,13 +8,13 @@ public class Model {
 
 	static final int Depth = 15;
 	static final int Width = 7;
-	
+
 	List<ModelListener> listeners = new ArrayList<>();
-	
+
 	public Model(ModelListener... listeners) {
 		this.listeners.addAll(Arrays.asList(listeners));
 	}
-	
+
 	public void register(ModelListener listener) {
 		listeners.add(listener);
 	}
@@ -22,20 +22,20 @@ public class Model {
 	public void unregister(ModelListener listener) {
 		listeners.remove(listener);
 	}
-	
-	int level; 
+
+	int level;
 
 	long score;
 
 	int newField[][];
 
 	int oldField[][];
-	
+
 	Figure fig;
-	
+
 	int tripletsCollected;
 	boolean NoChanges;
-	long DScore;
+	long DropBonusScore;
 
 	boolean allCellsHaveSameColor(int a, int b, int c, int d, int i, int j) {
 		return (newField[j][i] == newField[a][b])
@@ -66,7 +66,8 @@ public class Model {
 			zz = Model.Depth;
 			while (newField[fig.x][zz] > 0)
 				zz--;
-			DScore = (long) ((((level + 1) * (Model.Depth * 2 - fig.y - zz) * 2) % 5) * 5);
+			DropBonusScore = (long) ((((level + 1)
+					* (Model.Depth * 2 - fig.y - zz) * 2) % 5) * 5);
 			fig.y = zz - 2;
 		}
 		fireFigureShift(0, fig.y - oldY);
@@ -143,8 +144,7 @@ public class Model {
 	}
 
 	public boolean mayFigureMoveDown() {
-		return (fig.y < Model.Depth - 2)
-				&& (newField[fig.x][fig.y + 3] == 0);
+		return (fig.y < Model.Depth - 2) && (newField[fig.x][fig.y + 3] == 0);
 	}
 
 	public void moveFigureDown() {
@@ -153,15 +153,23 @@ public class Model {
 	}
 
 	private void fireFigureShift(int xShift, int yShift) {
-		listeners.forEach(l -> l.figureHasShifted(xShift, yShift)); 
+		listeners.forEach(l -> l.figureHasShifted(xShift, yShift));
 	}
 
-	public void moveFigureLeft() {
+	public void moveLeft() {
+		if (!((fig.x > 1) && (newField[fig.x - 1][fig.y + 2] == 0))) {
+			return; // guard condition  
+		}
 		fig.x--;
 		fireFigureShift(-1, 0);
 	}
 
-	public void moveFigureRight() {
+	public void moveRight() {
+		if (!((fig.x < Model.Width)
+				&& (newField[fig.x + 1][fig.y
+										+ 2] == 0))) {
+			return;
+		}
 		fig.x++;
 		fireFigureShift(1, 0);
 	}
